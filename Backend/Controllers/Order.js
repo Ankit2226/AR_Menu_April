@@ -1,69 +1,117 @@
-const Order = require("../Models/Order"); // Assuming you have an Order model
+const Order = require('../Models/Order');
 
-// Get all orders
-const handleGetOrders = async (req, res) => {
+// @desc    Get all orders
+// @route   GET /api/orders
+// @access  Public
+const getOrders = async (req, res) => {
   try {
-    const orders = await Order.find(); // Fetch all orders from the database
-    res.status(200).json(orders); // Respond with the orders
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching orders", error: error.message });
-  }
-};
-
-// Get order by ID
-const handleGetOrderById = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id); // Fetch order by ID
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
+    const { status, paymentStatus, date } = req.query;
+    
+    let query = {};
+    
+    if (status && status !== 'all') {
+      query.status = status;
     }
-    res.status(200).json(order); // Respond with the order details
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching order", error: error.message });
-  }
-};
-
-// Place a new order
-const handlePlaceOrder = async (req, res) => {
-  try {
-    const newOrder = new Order(req.body); // Create a new order with the request body
-    const savedOrder = await newOrder.save(); // Save the order to the database
-    res.status(201).json(savedOrder); // Respond with the saved order
-  } catch (error) {
-    res.status(500).json({ message: "Error placing order", error: error.message });
-  }
-};
-
-// Update an order's status or details
-const handleUpdateOrderStatus = async (req, res) => {
-  try {
-    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true }); // Update order
-    if (!updatedOrder) {
-      return res.status(404).json({ message: "Order not found" });
+    
+    if (paymentStatus && paymentStatus !== 'all') {
+      query.paymentStatus = paymentStatus;
     }
-    res.status(200).json(updatedOrder); // Respond with the updated order
-  } catch (error) {
-    res.status(500).json({ message: "Error updating order", error: error.message });
+    
+    if (date) {
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+      
+      query.createdAt = {
+        $gte: startDate,
+        $lte: endDate
+      };
+    }
+    
+    const orders = await Order.find(query).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// Delete an order
-const handleDeleteOrder = async (req, res) => {
+// @desc    Create new order
+// @route   POST /api/orders
+// @access  Public
+const createOrder = async (req, res) => {
   try {
-    const deletedOrder = await Order.findByIdAndDelete(req.params.id); // Delete order by ID
-    if (!deletedOrder) {
-      return res.status(404).json({ message: "Order not found" });
+    const { tableNumber, customerName, items, notes } = req.body;
+    
+    // Calculate total amount
+    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    const order = new Order({
+      tableNumber,
+      customerName,
+      items,
+      totalAmount,
+      notes
+    });
+    
+    const createdOrder = await order.save();
+    res.status(201).json(createdOrder);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Update order
+// @route   PUT /api/orders/:id
+// @access  Public
+const updateOrder = async (req, res) => {
+  try {
+    const { status, paymentStatus, tableNumber, notes } = req.body;
+    
+    const order = await Order.findById(req.params.id);
+    
+    if (order) {
+      order.status = status || order.status;
+      order.paymentStatus = paymentStatus || order.paymentStatus;
+      order.tableNumber = tableNumber || order.tableNumber;
+      order.notes = notes || order.notes;
+      
+      const updatedOrder = await order.save();
+      res.json(updatedOrder);
+    } else {
+      res.status(404).json({ message: 'Order not found' });
     }
-    res.status(200).json({ message: "Order deleted successfully" }); // Respond with success message
-  } catch (error) {
-    res.status(500).json({ message: "Error deleting order", error: error.message });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Delete order
+// @route   DELETE /api/orders/:id
+// @access  Public
+const deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    
+    if (order) {
+      await order.remove();
+      res.json({ message: 'Order removed' });
+    } else {
+      res.status(404).json({ message: 'Order not found' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 
 module.exports = {
-  handleGetOrders,
-  handleGetOrderById,
-  handlePlaceOrder,
-  handleUpdateOrderStatus,
-  handleDeleteOrder
+  getOrders,
+  createOrder,
+  updateOrder,
+  deleteOrder
 };

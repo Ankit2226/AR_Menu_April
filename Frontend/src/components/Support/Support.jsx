@@ -4,8 +4,7 @@ import { BsGeoAlt } from 'react-icons/bs';
 
 function Support() {
     return (
-        <div>
-            <section className="relative z-10 overflow-hidden bg-[#fafafa] ">
+            <section className="relative px-8 z-10 overflow-hidden bg-[#fafafa] ">
                 <div className="container mx-auto">
                     <h2 className="mb-6 text-[32px] font-bold uppercase text-dark sm:text-[40px] lg:text-[36px] xl:text-[40px] text-center">
                         GET IN TOUCH WITH US
@@ -113,7 +112,6 @@ function Support() {
                     </div>
                 </div>
             </section>
-        </div>
     );
 }
 

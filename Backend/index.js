@@ -24,7 +24,7 @@ app.get("/",(req,res)=>{
 })
 app.use("/api", CategoryRouter);
 app.use("/api", ProductRouter);
-app.use("/api", OrderRouter);
+app.use("/api/orders", OrderRouter);
 
 app.listen(port, () => {
   console.log("server started");
